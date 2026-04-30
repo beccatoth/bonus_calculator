@@ -170,6 +170,13 @@ body {
   cursor: pointer;
   width: 100%;
   height: 100%;
+  z-index: 2;
+}
+.upload-zone .template-dl {
+  position: relative;
+  z-index: 3;
+  margin-bottom: 8px;
+  pointer-events: auto;
 }
 .upload-actions {
   display: flex;
@@ -454,6 +461,7 @@ tfoot td { padding: 10px 13px; border-top: 2px solid #1e3a5f; font-weight: 700; 
         <h3>📋 File 1 — Billable Client Hours</h3>
         <div class="upload-sub">Drag &amp; drop or click · .csv or .xlsx</div>
         <div class="expected-cols">employee_id<br>project_code<br>date<br>billed_hours<br>client_rate</div>
+        <button type="button" class="btn btn-secondary btn-sm template-dl" onclick="event.stopPropagation(); downloadTemplate(1)">↓ CSV template</button>
         <div class="file-status" id="file1status"></div>
         <input type="file" id="file1" accept=".csv,.xlsx,.xls" onchange="handleFileSelect(event,1)">
       </div>
@@ -463,6 +471,7 @@ tfoot td { padding: 10px 13px; border-top: 2px solid #1e3a5f; font-weight: 700; 
         <h3>⏱ File 2 — Consultant Submitted Hours</h3>
         <div class="upload-sub">Drag &amp; drop or click · .csv or .xlsx</div>
         <div class="expected-cols">employee_id<br>project_code<br>date<br>submitted_hours</div>
+        <button type="button" class="btn btn-secondary btn-sm template-dl" onclick="event.stopPropagation(); downloadTemplate(2)">↓ CSV template</button>
         <div class="file-status" id="file2status"></div>
         <input type="file" id="file2" accept=".csv,.xlsx,.xls" onchange="handleFileSelect(event,2)">
       </div>
@@ -472,6 +481,7 @@ tfoot td { padding: 10px 13px; border-top: 2px solid #1e3a5f; font-weight: 700; 
         <h3>👥 File 3 — Employee Roster / Salary</h3>
         <div class="upload-sub">Drag &amp; drop or click · .csv or .xlsx</div>
         <div class="expected-cols">employee_id · employee_name<br>annual_salary · start_date<br>end_date · department<br>employee_type · manager</div>
+        <button type="button" class="btn btn-secondary btn-sm template-dl" onclick="event.stopPropagation(); downloadTemplate(3)">↓ CSV template</button>
         <div class="file-status" id="file3status"></div>
         <input type="file" id="file3" accept=".csv,.xlsx,.xls" onchange="handleFileSelect(event,3)">
       </div>
@@ -672,6 +682,57 @@ function handleDragOver(e) {
 
 function handleDragLeave(e) {
   e.currentTarget.classList.remove('drag-over');
+}
+
+// Sample CSV templates (columns must match first-row headers expected by the calculator)
+const TEMPLATE_SPECS = {
+  1: {
+    filename: 'template_billable_client_hours.csv',
+    headers: ['employee_id', 'project_code', 'date', 'billed_hours', 'client_rate'],
+    rows: [
+      ['E001', 'PROJ-2024-01', '2025-08-15', '8', '175.00'],
+      ['E002', 'PROJ-2024-01', '2025-08-15', '6', '175.00']
+    ]
+  },
+  2: {
+    filename: 'template_consultant_submitted_hours.csv',
+    headers: ['employee_id', 'project_code', 'date', 'submitted_hours'],
+    rows: [
+      ['E001', 'PROJ-2024-01', '2025-08-15', '8'],
+      ['E002', 'PROJ-2024-01', '2025-08-15', '6.5']
+    ]
+  },
+  3: {
+    filename: 'template_employee_roster.csv',
+    headers: ['employee_id', 'employee_name', 'annual_salary', 'start_date', 'end_date', 'department', 'employee_type', 'manager'],
+    rows: [
+      ['E001', 'Jane Consultant', '95000', '2023-01-15', '', 'Engineering', 'Consultant', 'Pat Manager'],
+      ['E002', 'Alex Developer', '88000', '2024-03-01', '', 'Engineering', 'Consultant', 'Pat Manager']
+    ]
+  }
+};
+
+function csvEscape(cell) {
+  const s = String(cell ?? '');
+  if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+  return s;
+}
+
+function downloadTemplate(n) {
+  const spec = TEMPLATE_SPECS[n];
+  if (!spec) return;
+  const lines = [
+    spec.headers.map(csvEscape).join(','),
+    ...spec.rows.map(r => r.map(csvEscape).join(','))
+  ];
+  const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = spec.filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
 }
 
 function loadFile(file, n) {
