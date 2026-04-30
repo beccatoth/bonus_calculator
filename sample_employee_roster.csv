@@ -1,0 +1,8 @@
+employee_id,employee_name,annual_salary,start_date,end_date,department,employee_type,manager
+EMP001,Alice Johnson,95000,2020-01-15,,Consulting,Senior Consultant,Frank Brown
+EMP002,Bob Smith,110000,2019-03-15,,Consulting,Principal Consultant,Frank Brown
+EMP003,Carol Davis,85000,2021-06-01,,Analytics,Senior Consultant,David Lee
+EMP004,David Lee,120000,2018-01-01,,Analytics,Director,
+EMP005,Emma Wilson,90000,2023-02-01,2025-09-30,Consulting,Consultant,Frank Brown
+EMP006,Frank Brown,130000,2017-05-01,,Strategy,Director,
+EMP007,Grace Kim,88000,2025-08-15,,Analytics,Consultant,David Lee

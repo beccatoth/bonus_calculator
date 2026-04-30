@@ -1,0 +1,12 @@
+{
+  "name": "build-after-dark-3",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Consultant bonus calculator (static HTML)",
+  "scripts": {
+    "dev": "serve . -l 3000"
+  },
+  "devDependencies": {
+    "serve": "^14.2.4"
+  }
+}

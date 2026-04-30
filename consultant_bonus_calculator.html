@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consultant Bonus Calculator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  background: #eef1f5;
+  color: #1a2332;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ── App Header ──────────────────────────────── */
+.app-header {
+  background: linear-gradient(135deg, #1e3a5f 0%, #2e5480 100%);
+  color: white;
+  padding: 14px 28px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.app-header svg { flex-shrink: 0; }
+.app-header h1 { font-size: 19px; font-weight: 700; letter-spacing: -0.3px; }
+.app-header p { font-size: 12px; opacity: 0.75; margin-top: 1px; }
+
+/* ── Config Panel ────────────────────────────── */
+.config-panel {
+  background: white;
+  border-bottom: 2px solid #1e3a5f;
+  padding: 14px 28px;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+}
+.config-label-row {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: #8393a7;
+  margin-bottom: 10px;
+}
+.config-grid {
+  display: flex;
+  gap: 18px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.config-field { display: flex; flex-direction: column; gap: 5px; }
+.config-field label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #6c7a8d;
+}
+.config-field input {
+  padding: 7px 11px;
+  border: 1.5px solid #d0d7e0;
+  border-radius: 5px;
+  font-size: 14px;
+  color: #1a2332;
+  background: #fafbfc;
+  transition: border-color 0.15s;
+  width: 155px;
+}
+.config-field input[type="number"] { width: 100px; }
+.config-field input:focus { outline: none; border-color: #2e6da4; background: white; }
+
+/* ── Buttons ─────────────────────────────────── */
+.btn {
+  padding: 8px 18px;
+  border: none;
+  border-radius: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-primary { background: #1e3a5f; color: white; }
+.btn-primary:hover:not(:disabled) { background: #2e5480; transform: translateY(-1px); box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
+.btn-primary:disabled { background: #a8b4c0; cursor: not-allowed; }
+.btn-secondary { background: #e8ecf0; color: #4a5568; border: 1.5px solid #d0d7e0; }
+.btn-secondary:hover:not(:disabled) { background: #dde2e8; }
+.btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-success { background: #1a7a45; color: white; }
+.btn-success:hover { background: #218c50; transform: translateY(-1px); box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+
+/* ── Main Content ────────────────────────────── */
+.main-content { max-width: 1440px; margin: 0 auto; padding: 22px 28px; }
+
+/* ── Upload Panel ────────────────────────────── */
+.upload-panel {
+  background: white;
+  border-radius: 10px;
+  padding: 22px 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07), 0 4px 14px rgba(0,0,0,0.04);
+}
+.panel-title {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #1e3a5f;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eef1f5;
+}
+.upload-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.upload-zone {
+  border: 2px dashed #c8d3de;
+  border-radius: 8px;
+  padding: 18px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+  background: #fafbfc;
+}
+.upload-zone:hover, .upload-zone.drag-over {
+  border-color: #2e6da4;
+  background: #f0f6ff;
+}
+.upload-zone.uploaded {
+  border-color: #1a7a45;
+  background: #f0fff6;
+  border-style: solid;
+}
+.upload-zone h3 { font-size: 13px; font-weight: 700; color: #1e3a5f; margin-bottom: 5px; }
+.upload-zone .upload-sub { font-size: 11px; color: #8393a7; margin-bottom: 10px; }
+.upload-zone .expected-cols {
+  font-size: 10px;
+  color: #8393a7;
+  font-family: 'Courier New', monospace;
+  text-align: left;
+  background: #f0f2f5;
+  border-radius: 4px;
+  padding: 7px 9px;
+  line-height: 1.8;
+  margin-bottom: 10px;
+}
+.upload-zone .file-status {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1a7a45;
+  min-height: 18px;
+}
+.upload-zone input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+.upload-actions {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+.upload-status-text { font-size: 13px; color: #6c7a8d; }
+
+/* ── Issues Panel ────────────────────────────── */
+.issues-panel {
+  background: #fffdf0;
+  border: 1.5px solid #e6b800;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+.issues-header {
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  background: #fff8d0;
+  border-bottom: 1px solid #e6b800;
+}
+.issues-header h3 { font-size: 13px; font-weight: 700; color: #7a5800; }
+.issues-toggle { color: #7a5800; font-size: 12px; font-weight: 700; }
+.issues-body { padding: 12px 18px; }
+.issue-item {
+  font-size: 12px;
+  color: #5c4200;
+  padding: 6px 0;
+  border-bottom: 1px solid #fce77a;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.4;
+}
+.issue-item:last-child { border-bottom: none; }
+.issue-dot { flex-shrink: 0; margin-top: 2px; }
+
+/* ── Results Panel ───────────────────────────── */
+.results-panel {
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07), 0 4px 14px rgba(0,0,0,0.04);
+  overflow: hidden;
+}
+
+/* ── Tabs ─────────────────────────────────────── */
+.tab-nav {
+  display: flex;
+  border-bottom: 2px solid #e8ecf0;
+  background: #f4f6f9;
+}
+.tab-btn {
+  padding: 13px 26px;
+  border: none;
+  background: none;
+  font-size: 13px;
+  font-weight: 700;
+  color: #8393a7;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.15s;
+  letter-spacing: 0.2px;
+}
+.tab-btn:hover { color: #2e5480; }
+.tab-btn.active { color: #1e3a5f; border-bottom-color: #1e3a5f; background: white; }
+.tab-content { display: none; padding: 22px 24px; }
+.tab-content.active { display: block; }
+
+/* ── Tables ───────────────────────────────────── */
+.table-wrap { overflow-x: auto; margin-top: 14px; border-radius: 7px; border: 1px solid #e0e5eb; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th {
+  background: #1e3a5f;
+  color: white;
+  padding: 10px 13px;
+  text-align: left;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  font-size: 12px;
+  letter-spacing: 0.2px;
+}
+thead th.no-sort { cursor: default; }
+thead th:hover:not(.no-sort) { background: #2e5480; }
+thead th .sort-icon { margin-left: 5px; opacity: 0.6; font-size: 9px; }
+thead th.sort-asc .sort-icon::after { content: '▲'; opacity: 1; }
+thead th.sort-desc .sort-icon::after { content: '▼'; opacity: 1; }
+thead th:not(.sort-asc):not(.sort-desc) .sort-icon::after { content: '⇅'; }
+tbody tr { border-bottom: 1px solid #e8ecf0; transition: background 0.1s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: #f4f8ff; }
+tbody td { padding: 10px 13px; vertical-align: middle; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+tfoot tr { background: #e4eaf2; }
+tfoot td { padding: 10px 13px; border-top: 2px solid #1e3a5f; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* ── Expand rows ──────────────────────────────── */
+.expand-btn {
+  background: none;
+  border: 1.5px solid #c8d3de;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #2e6da4;
+  font-size: 14px;
+  font-weight: 700;
+  width: 22px;
+  height: 22px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.1s;
+}
+.expand-btn:hover { background: #e8f0fb; border-color: #2e6da4; }
+.detail-row { background: #f0f6ff !important; }
+.detail-row:hover { background: #e8f0fb !important; }
+.detail-inner-wrap { padding: 14px 14px 14px 42px; }
+.detail-inner-wrap table { border: 1px solid #c8d8f0; border-radius: 6px; overflow: hidden; font-size: 12px; }
+.detail-inner-wrap thead th { background: #2e6da4; padding: 8px 11px; font-size: 11px; }
+.detail-inner-wrap tbody td { padding: 7px 11px; }
+
+/* ── Margin badges ────────────────────────────── */
+.margin-badge {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.margin-green { background: #d1f0de; color: #0f5c2e; }
+.margin-yellow { background: #fff3cd; color: #7a5800; }
+.margin-red { background: #fde8e8; color: #8b1a1a; }
+
+/* ── Tab controls bar ─────────────────────────── */
+.tab-controls {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.filter-group { display: flex; align-items: center; gap: 7px; }
+.filter-group label { font-size: 12px; font-weight: 600; color: #6c7a8d; white-space: nowrap; }
+.filter-group select {
+  padding: 5px 9px;
+  border: 1.5px solid #d0d7e0;
+  border-radius: 5px;
+  font-size: 13px;
+  color: #1a2332;
+  background: #fafbfc;
+  cursor: pointer;
+}
+.filter-group select:focus { outline: none; border-color: #2e6da4; }
+.ml-auto { margin-left: auto; }
+
+/* ── Employee selector ────────────────────────── */
+.emp-selector-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+.emp-selector-bar label { font-size: 13px; font-weight: 700; color: #1e3a5f; white-space: nowrap; }
+.emp-selector-bar select {
+  padding: 8px 12px;
+  border: 1.5px solid #d0d7e0;
+  border-radius: 5px;
+  font-size: 14px;
+  color: #1a2332;
+  min-width: 260px;
+  background: #fafbfc;
+  cursor: pointer;
+}
+.emp-selector-bar select:focus { outline: none; border-color: #2e6da4; }
+
+/* ── Employee info header ─────────────────────── */
+.emp-info-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  background: #f4f6f9;
+  border: 1.5px solid #d8e0ea;
+  border-radius: 8px;
+  margin-bottom: 18px;
+  overflow: hidden;
+}
+.emp-info-item {
+  padding: 12px 16px;
+  border-right: 1px solid #d8e0ea;
+  border-bottom: 1px solid #d8e0ea;
+}
+.emp-info-item:nth-child(4n) { border-right: none; }
+.emp-info-item:nth-last-child(-n+4) { border-bottom: none; }
+.emp-info-item label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #8393a7;
+  margin-bottom: 4px;
+}
+.emp-info-item .val { font-size: 14px; font-weight: 600; color: #1a2332; }
+
+/* ── Empty state ──────────────────────────────── */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #8393a7;
+}
+.empty-state .icon { font-size: 44px; margin-bottom: 14px; }
+.empty-state h3 { font-size: 17px; color: #a8b4c0; margin-bottom: 8px; }
+.empty-state p { font-size: 13px; }
+
+/* ── Utilities ────────────────────────────────── */
+.hidden { display: none !important; }
+.text-muted { color: #8393a7; }
+.text-right { text-align: right; }
+.bold { font-weight: 700; }
+.consultants-list { font-size: 12px; color: #6c7a8d; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════ APP HEADER -->
+<div class="app-header">
+  <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+    <rect width="32" height="32" rx="8" fill="rgba(255,255,255,0.15)"/>
+    <rect x="5" y="18" width="5" height="9" rx="1" fill="white"/>
+    <rect x="13.5" y="12" width="5" height="15" rx="1" fill="rgba(255,255,255,0.85)"/>
+    <rect x="22" y="7" width="5" height="20" rx="1" fill="rgba(255,255,255,0.7)"/>
+    <path d="M7.5 15 L16 9 L24.5 4" stroke="rgba(255,220,80,0.9)" stroke-width="2" stroke-linecap="round"/>
+  </svg>
+  <div>
+    <h1>Consultant Bonus Calculator</h1>
+    <p>Semi-annual profitability &amp; bonus payout analysis</p>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════ CONFIG PANEL -->
+<div class="config-panel">
+  <div class="config-label-row">Configuration — stays visible while you scroll</div>
+  <div class="config-grid">
+    <div class="config-field">
+      <label>Bonus Period Start</label>
+      <input type="date" id="periodStart" value="2025-07-01">
+    </div>
+    <div class="config-field">
+      <label>Bonus Period End</label>
+      <input type="date" id="periodEnd" value="2025-12-31">
+    </div>
+    <div class="config-field">
+      <label>Bonus Payout %</label>
+      <input type="number" id="bonusPct" value="3" min="0" max="100" step="0.1">
+    </div>
+    <div class="config-field">
+      <label>Fringe %</label>
+      <input type="number" id="fringePct" value="25" min="0" max="100" step="0.1">
+    </div>
+    <div class="config-field" style="justify-content:flex-end">
+      <button class="btn btn-secondary" id="recalcBtn" onclick="recalculate()" disabled>↺ Recalculate</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════ MAIN CONTENT -->
+<div class="main-content">
+
+  <!-- ─── Upload Panel ─── -->
+  <div class="upload-panel">
+    <div class="panel-title">Data Files</div>
+    <div class="upload-grid">
+
+      <div class="upload-zone" id="zone1"
+           ondrop="handleDrop(event,1)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+        <h3>📋 File 1 — Billable Client Hours</h3>
+        <div class="upload-sub">Drag &amp; drop or click · .csv or .xlsx</div>
+        <div class="expected-cols">employee_id<br>project_code<br>date<br>billed_hours<br>client_rate</div>
+        <div class="file-status" id="file1status"></div>
+        <input type="file" id="file1" accept=".csv,.xlsx,.xls" onchange="handleFileSelect(event,1)">
+      </div>
+
+      <div class="upload-zone" id="zone2"
+           ondrop="handleDrop(event,2)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+        <h3>⏱ File 2 — Consultant Submitted Hours</h3>
+        <div class="upload-sub">Drag &amp; drop or click · .csv or .xlsx</div>
+        <div class="expected-cols">employee_id<br>project_code<br>date<br>submitted_hours</div>
+        <div class="file-status" id="file2status"></div>
+        <input type="file" id="file2" accept=".csv,.xlsx,.xls" onchange="handleFileSelect(event,2)">
+      </div>
+
+      <div class="upload-zone" id="zone3"
+           ondrop="handleDrop(event,3)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+        <h3>👥 File 3 — Employee Roster / Salary</h3>
+        <div class="upload-sub">Drag &amp; drop or click · .csv or .xlsx</div>
+        <div class="expected-cols">employee_id · employee_name<br>annual_salary · start_date<br>end_date · department<br>employee_type · manager</div>
+        <div class="file-status" id="file3status"></div>
+        <input type="file" id="file3" accept=".csv,.xlsx,.xls" onchange="handleFileSelect(event,3)">
+      </div>
+
+    </div>
+    <div class="upload-actions">
+      <button class="btn btn-primary" id="calcBtn" onclick="runAndRender()" disabled>▶ Calculate</button>
+      <span class="upload-status-text" id="uploadStatus">Upload all three files to enable calculation</span>
+    </div>
+  </div>
+
+  <!-- ─── Issues Panel ─── -->
+  <div class="issues-panel hidden" id="issuesPanel">
+    <div class="issues-header" onclick="toggleIssues()">
+      <h3>⚠ Data Issues &amp; Exclusions (<span id="issueCount">0</span>)</h3>
+      <span class="issues-toggle" id="issuesToggle">▲ Hide</span>
+    </div>
+    <div id="issuesBody" class="issues-body"></div>
+  </div>
+
+  <!-- ─── Results Panel ─── -->
+  <div class="results-panel hidden" id="resultsPanel">
+    <div class="tab-nav">
+      <button class="tab-btn active" id="tabBtnProject" onclick="switchTab('project')">📊 Project Summary</button>
+      <button class="tab-btn" id="tabBtnEmployee" onclick="switchTab('employee')">👤 Employee Detail</button>
+    </div>
+
+    <!-- ══ Tab 1: Project Summary ══ -->
+    <div class="tab-content active" id="tab-project">
+      <div class="tab-controls">
+        <div class="filter-group">
+          <label>Department:</label>
+          <select id="filterDept" onchange="renderProjectTab()">
+            <option value="">All Departments</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Manager:</label>
+          <select id="filterManager" onchange="renderProjectTab()">
+            <option value="">All Managers</option>
+          </select>
+        </div>
+        <div class="ml-auto">
+          <button class="btn btn-success btn-sm" onclick="exportProjectSummary()">↓ Download Excel</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table id="projectTable">
+          <thead>
+            <tr>
+              <th class="no-sort" style="width:34px;"></th>
+              <th onclick="sortBy('projCode')">Project Code <span class="sort-icon"></span></th>
+              <th onclick="sortBy('totalBilledHours')" class="num">Total Billed Hrs <span class="sort-icon"></span></th>
+              <th onclick="sortBy('totalRevenue')" class="num">Total Revenue <span class="sort-icon"></span></th>
+              <th onclick="sortBy('totalCost')" class="num">Total Cost <span class="sort-icon"></span></th>
+              <th onclick="sortBy('grossProfit')" class="num">Gross Profit <span class="sort-icon"></span></th>
+              <th onclick="sortBy('profitMargin')" class="num">Margin % <span class="sort-icon"></span></th>
+              <th class="no-sort">Consultants</th>
+            </tr>
+          </thead>
+          <tbody id="projectTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══ Tab 2: Employee Detail ══ -->
+    <div class="tab-content" id="tab-employee">
+      <div class="emp-selector-bar">
+        <label>Select Employee:</label>
+        <select id="empSelect" onchange="renderEmpDetail()">
+          <option value="">— Select an employee —</option>
+        </select>
+        <div class="ml-auto">
+          <button class="btn btn-success btn-sm" id="empExportBtn" onclick="exportEmpDetail()" disabled>↓ Download Excel</button>
+        </div>
+      </div>
+      <div id="empDetailContent">
+        <div class="empty-state">
+          <div class="icon">👤</div>
+          <h3>No Employee Selected</h3>
+          <p>Choose an employee from the dropdown to view their full bonus calculation.</p>
+        </div>
+      </div>
+    </div>
+  </div><!-- /results-panel -->
+
+</div><!-- /main-content -->
+
+<!-- ══════════════════════════════════════════════ JAVASCRIPT ══════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+// ─────────────────────────────────────── STATE
+const S = {
+  files: { 1: null, 2: null, 3: null },
+  data: { billable: [], submitted: [], roster: [] },
+  results: null,
+  sortCol: 'projCode',
+  sortDir: 'asc',
+  issuesOpen: true
+};
+
+// ─────────────────────────────────────── HELPERS
+
+function escHtml(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function parseMoney(v) {
+  return parseFloat(String(v ?? '').replace(/[$,\s]/g, '')) || 0;
+}
+
+function parseHours(v) {
+  return parseFloat(String(v ?? '').replace(/,/g,'')) || 0;
+}
+
+// Parse a date value from SheetJS output (string, number, or Date)
+function parseDate(v) {
+  if (v == null || v === '') return null;
+  if (v instanceof Date) return isNaN(v.getTime()) ? null : stripTime(v);
+
+  // Excel serial date
+  if (typeof v === 'number') {
+    try {
+      const p = XLSX.SSF.parse_date_code(v);
+      if (p) return stripTime(new Date(p.y, p.m - 1, p.d));
+    } catch(e) {}
+    return null;
+  }
+
+  const s = String(v).trim();
+  if (!s) return null;
+
+  // YYYY-MM-DD
+  const m1 = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m1) return stripTime(new Date(+m1[1], +m1[2]-1, +m1[3]));
+
+  // M/D/YYYY or MM/DD/YYYY
+  const m2 = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (m2) return stripTime(new Date(+m2[3], +m2[1]-1, +m2[2]));
+
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : stripTime(d);
+}
+
+function stripTime(d) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+function fmtCurrency(n) {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2
+  }).format(n);
+}
+
+function fmtPct(n) {
+  return (n * 100).toFixed(1) + '%';
+}
+
+function fmtHrs(n) {
+  return new Intl.NumberFormat('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(n);
+}
+
+function normId(v) {
+  return String(v ?? '').trim().toUpperCase();
+}
+
+function normCode(v) {
+  return String(v ?? '').trim().toUpperCase();
+}
+
+function getConfig() {
+  const ps = parseDate(document.getElementById('periodStart').value) || stripTime(new Date('2025-07-01'));
+  const pe = parseDate(document.getElementById('periodEnd').value)   || stripTime(new Date('2025-12-31'));
+  const bonus  = (parseFloat(document.getElementById('bonusPct').value)  || 0) / 100;
+  const fringe = (parseFloat(document.getElementById('fringePct').value) || 0) / 100;
+  return { ps, pe, bonus, fringe };
+}
+
+// ─────────────────────────────────────── FILE UPLOAD
+
+function handleFileSelect(e, n) {
+  const f = e.target.files[0];
+  if (f) loadFile(f, n);
+}
+
+function handleDrop(e, n) {
+  e.preventDefault();
+  document.getElementById('zone' + n).classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f) loadFile(f, n);
+}
+
+function handleDragOver(e) {
+  e.preventDefault();
+  e.currentTarget.classList.add('drag-over');
+}
+
+function handleDragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+
+function loadFile(file, n) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const arr = new Uint8Array(ev.target.result);
+      const wb  = XLSX.read(arr, { type: 'array', cellDates: false, raw: false });
+      const ws  = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { raw: false, defval: '' });
+
+      S.files[n] = file;
+      if (n === 1) S.data.billable  = rows;
+      if (n === 2) S.data.submitted = rows;
+      if (n === 3) S.data.roster    = rows;
+
+      document.getElementById('file' + n + 'status').textContent = '✓ ' + file.name;
+      document.getElementById('zone' + n).classList.add('uploaded');
+      checkReady();
+    } catch(err) {
+      alert('Could not read file: ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function checkReady() {
+  const ready = S.files[1] && S.files[2] && S.files[3];
+  document.getElementById('calcBtn').disabled = !ready;
+  document.getElementById('uploadStatus').textContent = ready
+    ? 'All files loaded — ready to calculate.'
+    : [1,2,3].filter(n => !S.files[n]).length + ' file(s) remaining';
+}
+
+// ─────────────────────────────────────── CORE CALCULATIONS
+
+function calculate() {
+  const { ps, pe, bonus, fringe } = getConfig();
+  const { billable, submitted, roster } = S.data;
+  const issues = [];
+  const seenBadEmp = new Set();
+
+  // 1. Build roster map  (id -> employee object)
+  const rosterMap = {};
+  roster.forEach(emp => {
+    const id = normId(emp.employee_id);
+    if (id) rosterMap[id] = emp;
+  });
+
+  // 2. Build submitted hours map: "EMPID|PROJCODE" -> hours (within period)
+  const submMap = {};
+  submitted.forEach(row => {
+    const d = parseDate(row.date);
+    if (!d || d < ps || d > pe) return;
+    const key = normId(row.employee_id) + '|' + normCode(row.project_code);
+    submMap[key] = (submMap[key] || 0) + parseHours(row.submitted_hours);
+  });
+
+  // 3. Filter & validate billable hours
+  const eligible = [];
+  billable.forEach((row, i) => {
+    const rn = i + 2;
+
+    const d = parseDate(row.date);
+    if (!d) {
+      issues.push({ lvl: 'error', msg: `Row ${rn}: unparseable date "${row.date}" — excluded` });
+      return;
+    }
+    // Outside bonus period → silently skip (not a data issue, just filtering)
+    if (d < ps || d > pe) return;
+
+    const empId   = normId(row.employee_id);
+    const projCode = normCode(row.project_code);
+
+    if (!empId) {
+      issues.push({ lvl: 'warning', msg: `Row ${rn}: blank employee_id — excluded` });
+      return;
+    }
+
+    // Roster lookup
+    const emp = rosterMap[empId];
+    if (!emp) {
+      if (!seenBadEmp.has(empId)) {
+        issues.push({ lvl: 'warning', msg: `Employee ID "${empId}" not found in roster — all billed hours excluded` });
+        seenBadEmp.add(empId);
+      }
+      return;
+    }
+
+    // Employment window
+    const empStart = emp.start_date ? parseDate(emp.start_date) : null;
+    const empEnd   = (emp.end_date && String(emp.end_date).trim()) ? parseDate(emp.end_date) : null;
+
+    if (empStart && d < empStart) {
+      issues.push({ lvl: 'info', msg: `${emp.employee_name}: billed hours on ${row.date} before hire date ${emp.start_date} — excluded` });
+      return;
+    }
+    if (empEnd && d > empEnd) {
+      issues.push({ lvl: 'info', msg: `${emp.employee_name}: billed hours on ${row.date} after termination date ${emp.end_date} — excluded` });
+      return;
+    }
+
+    // Client rate
+    const rate = parseMoney(row.client_rate);
+    if (!rate || rate <= 0) {
+      issues.push({ lvl: 'warning', msg: `Row ${rn} (${empId} / ${projCode}): missing or zero client_rate — excluded` });
+      return;
+    }
+
+    const hrs = parseHours(row.billed_hours);
+    if (hrs <= 0) return;
+
+    eligible.push({ empId, projCode, d, hrs, rate, emp });
+  });
+
+  // 4. Hourly cost rate per employee
+  const costMap = {};
+  Object.entries(rosterMap).forEach(([id, emp]) => {
+    const sal = parseMoney(emp.annual_salary);
+    costMap[id] = (sal / 2080) * (1 + fringe);
+  });
+
+  // 5. Group by empId + projCode
+  const combos = {};
+  eligible.forEach(row => {
+    const key = row.empId + '|' + row.projCode;
+    if (!combos[key]) combos[key] = { empId: row.empId, projCode: row.projCode, emp: row.emp, rows: [] };
+    combos[key].rows.push(row);
+  });
+
+  // 6. Calculate per combo
+  const comboResults = [];
+  Object.values(combos).forEach(c => {
+    const hourlyCost = costMap[c.empId] || 0;
+    let revenue = 0, billedHrs = 0;
+    c.rows.forEach(r => { revenue += r.hrs * r.rate; billedHrs += r.hrs; });
+    const effectiveRate = billedHrs > 0 ? revenue / billedHrs : 0;
+    const cost   = billedHrs * hourlyCost;
+    const profit = revenue - cost;
+    const submKey = c.empId + '|' + c.projCode;
+
+    comboResults.push({
+      empId:        c.empId,
+      empName:      c.emp.employee_name || c.empId,
+      dept:         c.emp.department    || '',
+      empType:      c.emp.employee_type || '',
+      manager:      c.emp.manager       || '',
+      annualSalary: parseMoney(c.emp.annual_salary),
+      projCode:     c.projCode,
+      billedHrs,
+      submittedHrs: submMap[submKey] || 0,
+      clientRate:   effectiveRate,
+      revenue,
+      hourlyCost,
+      cost,
+      profit,
+      bonusPct:     bonus,
+      bonusAmt:     profit * bonus,
+      fringePct:    fringe
+    });
+  });
+
+  // 7. Project-level rollup
+  const projMap = {};
+  comboResults.forEach(r => {
+    if (!projMap[r.projCode]) {
+      projMap[r.projCode] = {
+        projCode: r.projCode,
+        totalBilledHours: 0, totalRevenue: 0, totalCost: 0,
+        consultants: new Set(), depts: new Set(), managers: new Set(),
+        detail: []
+      };
+    }
+    const p = projMap[r.projCode];
+    p.totalBilledHours += r.billedHrs;
+    p.totalRevenue     += r.revenue;
+    p.totalCost        += r.cost;
+    p.consultants.add(r.empName);
+    if (r.dept)    p.depts.add(r.dept);
+    if (r.manager) p.managers.add(r.manager);
+    p.detail.push(r);
+  });
+
+  const projectSummary = Object.values(projMap).map(p => ({
+    ...p,
+    grossProfit:    p.totalRevenue - p.totalCost,
+    profitMargin:   p.totalRevenue > 0 ? (p.totalRevenue - p.totalCost) / p.totalRevenue : 0,
+    consultantList: [...p.consultants].join(', '),
+    deptList:       [...p.depts],
+    managerList:    [...p.managers]
+  }));
+
+  // 8. Collect filter options
+  const allDepts = new Set(), allManagers = new Set();
+  comboResults.forEach(r => {
+    if (r.dept)    allDepts.add(r.dept);
+    if (r.manager) allManagers.add(r.manager);
+  });
+
+  return {
+    issues, projectSummary, comboResults, rosterMap,
+    filterOpts: {
+      depts:    [...allDepts].sort(),
+      managers: [...allManagers].sort()
+    }
+  };
+}
+
+// ─────────────────────────────────────── RUN + RENDER
+
+function runAndRender() {
+  try {
+    S.results = calculate();
+    renderIssues(S.results.issues);
+    populateFilters(S.results.filterOpts);
+    populateEmpDropdown(S.results);
+    renderProjectTab();
+    document.getElementById('resultsPanel').classList.remove('hidden');
+    document.getElementById('recalcBtn').disabled = false;
+    document.getElementById('resultsPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch(e) {
+    alert('Error during calculation: ' + e.message);
+    console.error(e);
+  }
+}
+
+function recalculate() { runAndRender(); }
+
+// ─────────────────────────────────────── ISSUES PANEL
+
+function renderIssues(issues) {
+  const panel  = document.getElementById('issuesPanel');
+  const body   = document.getElementById('issuesBody');
+  const count  = document.getElementById('issueCount');
+  if (!issues.length) { panel.classList.add('hidden'); return; }
+  panel.classList.remove('hidden');
+  count.textContent = issues.length;
+  const icons = { error: '🔴', warning: '🟡', info: 'ℹ️' };
+  body.innerHTML = issues.map(iss =>
+    `<div class="issue-item"><span class="issue-dot">${icons[iss.lvl]||'ℹ️'}</span><span>${escHtml(iss.msg)}</span></div>`
+  ).join('');
+}
+
+function toggleIssues() {
+  S.issuesOpen = !S.issuesOpen;
+  document.getElementById('issuesBody').style.display = S.issuesOpen ? '' : 'none';
+  document.getElementById('issuesToggle').textContent = S.issuesOpen ? '▲ Hide' : '▼ Show';
+}
+
+// ─────────────────────────────────────── PROJECT SUMMARY TAB
+
+function populateFilters(opts) {
+  const dSel = document.getElementById('filterDept');
+  const mSel = document.getElementById('filterManager');
+  dSel.innerHTML = '<option value="">All Departments</option>' +
+    opts.depts.map(d => `<option value="${escHtml(d)}">${escHtml(d)}</option>`).join('');
+  mSel.innerHTML = '<option value="">All Managers</option>' +
+    opts.managers.map(m => `<option value="${escHtml(m)}">${escHtml(m)}</option>`).join('');
+}
+
+function sortBy(col) {
+  S.sortDir = S.sortCol === col && S.sortDir === 'asc' ? 'desc' : 'asc';
+  S.sortCol = col;
+  renderProjectTab();
+}
+
+function renderProjectTab() {
+  if (!S.results) return;
+  const deptFilter = document.getElementById('filterDept').value;
+  const manFilter  = document.getElementById('filterManager').value;
+
+  let rows = [...S.results.projectSummary];
+  if (deptFilter) rows = rows.filter(p => p.deptList.includes(deptFilter));
+  if (manFilter)  rows = rows.filter(p => p.managerList.includes(manFilter));
+
+  // Sort
+  rows.sort((a, b) => {
+    const va = a[S.sortCol], vb = b[S.sortCol];
+    const cmp = typeof va === 'string' ? va.localeCompare(vb) : va - vb;
+    return S.sortDir === 'asc' ? cmp : -cmp;
+  });
+
+  // Update sort indicators
+  const colToThIdx = { projCode:1, totalBilledHours:2, totalRevenue:3, totalCost:4, grossProfit:5, profitMargin:6 };
+  document.querySelectorAll('#projectTable thead th').forEach(th => th.classList.remove('sort-asc','sort-desc'));
+  const ti = colToThIdx[S.sortCol];
+  if (ti != null) {
+    const th = document.querySelectorAll('#projectTable thead th')[ti];
+    if (th) th.classList.add(S.sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+  }
+
+  const tbody = document.getElementById('projectTbody');
+  tbody.innerHTML = '';
+
+  rows.forEach(proj => {
+    const mc = proj.profitMargin >= 0.30 ? 'margin-green' : proj.profitMargin >= 0 ? 'margin-yellow' : 'margin-red';
+    const safeCode = proj.projCode.replace(/[^a-zA-Z0-9]/g,'_');
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="padding-left:10px">
+        <button class="expand-btn" id="xbtn-${safeCode}" onclick="toggleExpand('${safeCode}')">+</button>
+      </td>
+      <td><strong>${escHtml(proj.projCode)}</strong></td>
+      <td class="num">${fmtHrs(proj.totalBilledHours)}</td>
+      <td class="num">${fmtCurrency(proj.totalRevenue)}</td>
+      <td class="num">${fmtCurrency(proj.totalCost)}</td>
+      <td class="num">${fmtCurrency(proj.grossProfit)}</td>
+      <td class="num"><span class="margin-badge ${mc}">${fmtPct(proj.profitMargin)}</span></td>
+      <td><span class="consultants-list">${escHtml(proj.consultantList)}</span></td>
+    `;
+    tbody.appendChild(tr);
+
+    // Expandable detail row
+    const dtr = document.createElement('tr');
+    dtr.id = 'xrow-' + safeCode;
+    dtr.className = 'detail-row hidden';
+    dtr.innerHTML = `
+      <td colspan="8">
+        <div class="detail-inner-wrap">
+          <table>
+            <thead><tr>
+              <th>Consultant</th>
+              <th class="num">Billed Hrs</th>
+              <th class="num">Client Rate</th>
+              <th class="num">Revenue</th>
+              <th class="num">Hourly Cost</th>
+              <th class="num">Total Cost</th>
+              <th class="num">Profit</th>
+              <th class="num">Bonus</th>
+            </tr></thead>
+            <tbody>
+              ${proj.detail.map(r => `
+                <tr>
+                  <td>${escHtml(r.empName)}</td>
+                  <td class="num">${fmtHrs(r.billedHrs)}</td>
+                  <td class="num">${fmtCurrency(r.clientRate)}/hr</td>
+                  <td class="num">${fmtCurrency(r.revenue)}</td>
+                  <td class="num">${fmtCurrency(r.hourlyCost)}/hr</td>
+                  <td class="num">${fmtCurrency(r.cost)}</td>
+                  <td class="num">${fmtCurrency(r.profit)}</td>
+                  <td class="num">${fmtCurrency(r.bonusAmt)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(dtr);
+  });
+}
+
+function toggleExpand(safeCode) {
+  const drow = document.getElementById('xrow-' + safeCode);
+  const btn  = document.getElementById('xbtn-' + safeCode);
+  const open = drow.classList.toggle('hidden') === false;
+  btn.textContent = open ? '−' : '+';
+}
+
+// ─────────────────────────────────────── EMPLOYEE DETAIL TAB
+
+function populateEmpDropdown(results) {
+  const sel = document.getElementById('empSelect');
+  const { rosterMap } = results;
+
+  // All employees from File 3, sorted by name
+  const emps = Object.values(rosterMap)
+    .sort((a, b) => (a.employee_name||'').localeCompare(b.employee_name||''));
+
+  sel.innerHTML = '<option value="">— Select an employee —</option>' +
+    emps.map(e => {
+      const id = normId(e.employee_id);
+      return `<option value="${escHtml(id)}">${escHtml(e.employee_name)} (${escHtml(id)})</option>`;
+    }).join('');
+}
+
+function renderEmpDetail() {
+  const empId   = document.getElementById('empSelect').value;
+  const content = document.getElementById('empDetailContent');
+  const expBtn  = document.getElementById('empExportBtn');
+
+  if (!empId || !S.results) {
+    expBtn.disabled = true;
+    content.innerHTML = `<div class="empty-state"><div class="icon">👤</div><h3>No Employee Selected</h3><p>Choose an employee from the dropdown above.</p></div>`;
+    return;
+  }
+
+  const { comboResults, rosterMap } = S.results;
+  const cfg = getConfig();
+  const emp  = rosterMap[empId];
+  const rows = comboResults.filter(r => r.empId === empId);
+
+  if (!rows.length) {
+    expBtn.disabled = true;
+    content.innerHTML = `<div class="empty-state"><h3>No eligible billed hours found for this employee in the selected period.</h3></div>`;
+    return;
+  }
+
+  expBtn.disabled = false;
+
+  const hourlyCost  = rows[0].hourlyCost;
+  const annualSal   = rows[0].annualSalary;
+  const totBilled   = rows.reduce((s,r) => s + r.billedHrs, 0);
+  const totSubmit   = rows.reduce((s,r) => s + r.submittedHrs, 0);
+  const totRevenue  = rows.reduce((s,r) => s + r.revenue, 0);
+  const totCost     = rows.reduce((s,r) => s + r.cost, 0);
+  const totProfit   = rows.reduce((s,r) => s + r.profit, 0);
+  const totBonus    = rows.reduce((s,r) => s + r.bonusAmt, 0);
+
+  content.innerHTML = `
+    <div class="emp-info-grid">
+      <div class="emp-info-item"><label>Employee Name</label><div class="val">${escHtml(emp?.employee_name||empId)}</div></div>
+      <div class="emp-info-item"><label>Employee ID</label><div class="val">${escHtml(empId)}</div></div>
+      <div class="emp-info-item"><label>Department</label><div class="val">${escHtml(emp?.department||'—')}</div></div>
+      <div class="emp-info-item"><label>Employee Type</label><div class="val">${escHtml(emp?.employee_type||'—')}</div></div>
+      <div class="emp-info-item"><label>Manager</label><div class="val">${escHtml(emp?.manager||'—')}</div></div>
+      <div class="emp-info-item"><label>Annual Salary</label><div class="val">${fmtCurrency(annualSal)}</div></div>
+      <div class="emp-info-item"><label>Hourly Cost Rate</label><div class="val">${fmtCurrency(hourlyCost)}/hr</div></div>
+      <div class="emp-info-item"><label>Fringe %</label><div class="val">${fmtPct(cfg.fringe)}</div></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Project Code</th>
+          <th class="num">Billed Hours</th>
+          <th class="num">Submitted Hrs <span style="opacity:.7;font-weight:400">(ref)</span></th>
+          <th class="num">Client Rate</th>
+          <th class="num">Revenue</th>
+          <th class="num">Hourly Cost Rate</th>
+          <th class="num">Total Cost</th>
+          <th class="num">Profit</th>
+          <th class="num">Bonus %</th>
+          <th class="num">Bonus Amount</th>
+        </tr></thead>
+        <tbody>
+          ${rows.map(r => `
+            <tr>
+              <td><strong>${escHtml(r.projCode)}</strong></td>
+              <td class="num">${fmtHrs(r.billedHrs)}</td>
+              <td class="num text-muted">${fmtHrs(r.submittedHrs)}</td>
+              <td class="num">${fmtCurrency(r.clientRate)}/hr</td>
+              <td class="num">${fmtCurrency(r.revenue)}</td>
+              <td class="num">${fmtCurrency(r.hourlyCost)}/hr</td>
+              <td class="num">${fmtCurrency(r.cost)}</td>
+              <td class="num">${fmtCurrency(r.profit)}</td>
+              <td class="num">${fmtPct(r.bonusPct)}</td>
+              <td class="num"><strong>${fmtCurrency(r.bonusAmt)}</strong></td>
+            </tr>
+          `).join('')}
+        </tbody>
+        <tfoot><tr>
+          <td>TOTAL</td>
+          <td class="num">${fmtHrs(totBilled)}</td>
+          <td class="num text-muted">${fmtHrs(totSubmit)}</td>
+          <td class="num">—</td>
+          <td class="num">${fmtCurrency(totRevenue)}</td>
+          <td class="num">—</td>
+          <td class="num">${fmtCurrency(totCost)}</td>
+          <td class="num">${fmtCurrency(totProfit)}</td>
+          <td class="num">—</td>
+          <td class="num">${fmtCurrency(totBonus)}</td>
+        </tr></tfoot>
+      </table>
+    </div>
+  `;
+}
+
+// ─────────────────────────────────────── TAB SWITCHING
+
+function switchTab(name) {
+  document.getElementById('tabBtnProject').classList.toggle('active', name === 'project');
+  document.getElementById('tabBtnEmployee').classList.toggle('active', name === 'employee');
+  document.getElementById('tab-project').classList.toggle('active', name === 'project');
+  document.getElementById('tab-employee').classList.toggle('active', name === 'employee');
+}
+
+// ─────────────────────────────────────── EXCEL EXPORT — PROJECT SUMMARY
+
+function exportProjectSummary() {
+  if (!S.results) return;
+  const cfg = getConfig();
+  const deptFilter = document.getElementById('filterDept').value;
+  const manFilter  = document.getElementById('filterManager').value;
+
+  let projects = [...S.results.projectSummary];
+  if (deptFilter) projects = projects.filter(p => p.deptList.includes(deptFilter));
+  if (manFilter)  projects = projects.filter(p => p.managerList.includes(manFilter));
+
+  const wb = XLSX.utils.book_new();
+
+  // ── Sheet 1: Project Summary ──
+  const aoa1 = [
+    ['Consultant Bonus Calculator — Project Summary'],
+    [`Period: ${cfg.ps.toLocaleDateString()} – ${cfg.pe.toLocaleDateString()}  |  Bonus: ${fmtPct(cfg.bonus)}  |  Fringe: ${fmtPct(cfg.fringe)}`],
+    [],
+    ['Project Code', 'Total Billed Hours', 'Total Revenue', 'Total Cost', 'Gross Profit', 'Profit Margin %', 'Consultants']
+  ];
+
+  // Data rows start at spreadsheet row 5 (AOA index 4)
+  projects.forEach(p => {
+    aoa1.push([p.projCode, p.totalBilledHours, p.totalRevenue, p.totalCost, p.grossProfit, p.profitMargin, p.consultantList]);
+  });
+
+  const ws1 = XLSX.utils.aoa_to_sheet(aoa1);
+
+  // Inject formulas for Gross Profit (col E=4) and Margin % (col F=5) in data rows
+  projects.forEach((_, i) => {
+    const aoaR  = 4 + i;          // 0-indexed array row
+    const ssRow = 5 + i;          // 1-indexed spreadsheet row (for formula strings)
+    ws1[XLSX.utils.encode_cell({ r: aoaR, c: 4 })] = { t: 'n', f: `C${ssRow}-D${ssRow}` };
+    ws1[XLSX.utils.encode_cell({ r: aoaR, c: 5 })] = { t: 'n', f: `E${ssRow}/C${ssRow}`, z: '0.0%' };
+  });
+
+  ws1['!cols'] = [{ wch:16 },{ wch:20 },{ wch:16 },{ wch:14 },{ wch:14 },{ wch:14 },{ wch:55 }];
+  XLSX.utils.book_append_sheet(wb, ws1, 'Project Summary');
+
+  // ── Sheet 2: Consultant Detail ──
+  const aoa2 = [
+    ['Project Code','Employee ID','Consultant','Department','Manager','Billed Hours','Client Rate','Revenue','Hourly Cost Rate','Total Cost','Profit','Bonus %','Bonus Amount']
+  ];
+  projects.forEach(p => {
+    p.detail.forEach(r => {
+      aoa2.push([r.projCode, r.empId, r.empName, r.dept, r.manager,
+        r.billedHrs, r.clientRate, r.revenue, r.hourlyCost, r.cost, r.profit, r.bonusPct, r.bonusAmt]);
+    });
+  });
+  const ws2 = XLSX.utils.aoa_to_sheet(aoa2);
+  ws2['!cols'] = [{ wch:14 },{ wch:10 },{ wch:22 },{ wch:14 },{ wch:20 },
+    { wch:13 },{ wch:12 },{ wch:13 },{ wch:17 },{ wch:12 },{ wch:13 },{ wch:9 },{ wch:14 }];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Consultant Detail');
+
+  XLSX.writeFile(wb, 'project_summary.xlsx');
+}
+
+// ─────────────────────────────────────── EXCEL EXPORT — EMPLOYEE DETAIL
+
+function exportEmpDetail() {
+  const empId = document.getElementById('empSelect').value;
+  if (!empId || !S.results) return;
+
+  const { comboResults, rosterMap } = S.results;
+  const cfg  = getConfig();
+  const emp  = rosterMap[empId];
+  const rows = comboResults.filter(r => r.empId === empId);
+  if (!rows.length) return;
+
+  const empName    = emp?.employee_name || empId;
+  const hourlyCost = rows[0].hourlyCost;
+  const annualSal  = rows[0].annualSalary;
+
+  // Build AOA with metadata header section, then project table
+  // Row indices are 0-based in the array; spreadsheet rows are 1-based
+  const aoa = [
+    // Row 1
+    ['CONSULTANT BONUS CALCULATION DETAIL'],
+    // Row 2
+    [],
+    // Row 3
+    ['INPUTS'],
+    // Row 4
+    ['Bonus Period Start', cfg.ps.toLocaleDateString()],
+    // Row 5
+    ['Bonus Period End', cfg.pe.toLocaleDateString()],
+    // Row 6
+    ['Bonus Payout %', cfg.bonus, '', '(applied to project profit)'],
+    // Row 7
+    ['Fringe %', cfg.fringe, '', '(added on top of base salary for fully loaded cost)'],
+    // Row 8
+    [],
+    // Row 9
+    ['EMPLOYEE INFORMATION'],
+    // Row 10
+    ['Name', empName],
+    // Row 11
+    ['Employee ID', empId],
+    // Row 12
+    ['Department', emp?.department || ''],
+    // Row 13
+    ['Employee Type', emp?.employee_type || ''],
+    // Row 14
+    ['Manager', emp?.manager || ''],
+    // Row 15
+    ['Annual Salary', annualSal],
+    // Row 16
+    ['Hourly Cost Rate', hourlyCost, '', '= (Annual Salary / 2080) × (1 + Fringe %)'],
+    // Row 17
+    [],
+    // Row 18
+    ['PROJECT DETAIL'],
+    // Row 19  — table header (aoa index 18, ss row 19)
+    ['Project Code','Billed Hours','Submitted Hours (ref)','Client Rate',
+     'Revenue','Hourly Cost Rate','Total Cost','Profit','Bonus %','Bonus Amount']
+  ];
+
+  // Data rows start at ss row 20 (aoa index 19)
+  const dataStart = 20;   // 1-indexed spreadsheet row
+  const dataAoaStart = 19; // 0-indexed aoa index
+
+  rows.forEach((r, i) => {
+    const ssRow = dataStart + i;
+    aoa.push([
+      r.projCode,
+      r.billedHrs,
+      r.submittedHrs,
+      r.clientRate,
+      r.revenue,        // will be replaced with formula
+      r.hourlyCost,
+      r.cost,           // will be replaced with formula
+      r.profit,         // will be replaced with formula
+      r.bonusPct,
+      r.bonusAmt        // will be replaced with formula
+    ]);
+  });
+
+  // Summary row
+  const lastDataRow = dataStart + rows.length - 1;
+  const summaryAoaIdx = dataAoaStart + rows.length;
+  aoa.push([
+    'TOTAL',
+    0, 0, '',  0, '', 0, 0, '', 0   // placeholders — will be replaced with SUM formulas
+  ]);
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+  // Inject formulas for data rows
+  // Columns: A=0 projCode, B=1 billedHrs, C=2 submHrs, D=3 rate,
+  //          E=4 revenue, F=5 hourlyCost, G=6 cost, H=7 profit, I=8 bonusPct, J=9 bonusAmt
+  rows.forEach((_, i) => {
+    const ssRow = dataStart + i;
+    const aoaR  = dataAoaStart + i;
+    ws[XLSX.utils.encode_cell({ r: aoaR, c: 4 })] = { t: 'n', f: `B${ssRow}*D${ssRow}` };   // Revenue
+    ws[XLSX.utils.encode_cell({ r: aoaR, c: 6 })] = { t: 'n', f: `B${ssRow}*F${ssRow}` };   // Total Cost
+    ws[XLSX.utils.encode_cell({ r: aoaR, c: 7 })] = { t: 'n', f: `E${ssRow}-G${ssRow}` };   // Profit
+    ws[XLSX.utils.encode_cell({ r: aoaR, c: 9 })] = { t: 'n', f: `H${ssRow}*I${ssRow}` };   // Bonus Amount
+  });
+
+  // Summary row formulas
+  const summarySSRow = dataStart + rows.length;
+  const sR = summaryAoaIdx;
+  ws[XLSX.utils.encode_cell({ r: sR, c: 1 })] = { t: 'n', f: `SUM(B${dataStart}:B${lastDataRow})` };
+  ws[XLSX.utils.encode_cell({ r: sR, c: 2 })] = { t: 'n', f: `SUM(C${dataStart}:C${lastDataRow})` };
+  ws[XLSX.utils.encode_cell({ r: sR, c: 4 })] = { t: 'n', f: `SUM(E${dataStart}:E${lastDataRow})` };
+  ws[XLSX.utils.encode_cell({ r: sR, c: 6 })] = { t: 'n', f: `SUM(G${dataStart}:G${lastDataRow})` };
+  ws[XLSX.utils.encode_cell({ r: sR, c: 7 })] = { t: 'n', f: `SUM(H${dataStart}:H${lastDataRow})` };
+  ws[XLSX.utils.encode_cell({ r: sR, c: 9 })] = { t: 'n', f: `SUM(J${dataStart}:J${lastDataRow})` };
+
+  ws['!cols'] = [{ wch:16 },{ wch:14 },{ wch:18 },{ wch:13 },
+                 { wch:14 },{ wch:17 },{ wch:13 },{ wch:14 },{ wch:10 },{ wch:15 }];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Employee Detail');
+  XLSX.writeFile(wb, `bonus_detail_${empName.replace(/[^a-zA-Z0-9]/g,'_')}.xlsx`);
+}
+</script>
+</body>
+</html>

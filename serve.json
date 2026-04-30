@@ -1,0 +1,7 @@
+{
+  "rewrites": [
+    { "source": "/", "destination": "/consultant_bonus_calculator.html" },
+    { "source": "/index.html", "destination": "/consultant_bonus_calculator.html" }
+  ],
+  "directoryListing": false
+}
