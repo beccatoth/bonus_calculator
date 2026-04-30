@@ -1340,7 +1340,7 @@ function exportEmpDetail() {
       r.submittedHrs,
       r.clientRate,
       r.revenue,        // will be replaced with formula
-      r.hourlyCost,
+      r.hourlyCost,     // will be replaced with formula referencing $B$16
       r.cost,           // will be replaced with formula
       r.profit,         // will be replaced with formula
       r.bonusPct,
@@ -1358,6 +1358,10 @@ function exportEmpDetail() {
 
   const ws = XLSX.utils.aoa_to_sheet(aoa);
 
+  // Header: Hourly Cost Rate as a live formula = (Annual Salary / 2080) × (1 + Fringe %)
+  // Annual Salary is in B15, Fringe % is in B7
+  ws[XLSX.utils.encode_cell({ r: 15, c: 1 })] = { t: 'n', f: `(B15/2080)*(1+B7)`, z: '$#,##0.00' };
+
   // Inject formulas for data rows
   // Columns: A=0 projCode, B=1 billedHrs, C=2 submHrs, D=3 rate,
   //          E=4 revenue, F=5 hourlyCost, G=6 cost, H=7 profit, I=8 bonusPct, J=9 bonusAmt
@@ -1365,6 +1369,7 @@ function exportEmpDetail() {
     const ssRow = dataStart + i;
     const aoaR  = dataAoaStart + i;
     ws[XLSX.utils.encode_cell({ r: aoaR, c: 4 })] = { t: 'n', f: `B${ssRow}*D${ssRow}` };   // Revenue
+    ws[XLSX.utils.encode_cell({ r: aoaR, c: 5 })] = { t: 'n', f: `$B$16`, z: '$#,##0.00' }; // Hourly Cost Rate
     ws[XLSX.utils.encode_cell({ r: aoaR, c: 6 })] = { t: 'n', f: `B${ssRow}*F${ssRow}` };   // Total Cost
     ws[XLSX.utils.encode_cell({ r: aoaR, c: 7 })] = { t: 'n', f: `E${ssRow}-G${ssRow}` };   // Profit
     ws[XLSX.utils.encode_cell({ r: aoaR, c: 9 })] = { t: 'n', f: `H${ssRow}*I${ssRow}` };   // Bonus Amount
