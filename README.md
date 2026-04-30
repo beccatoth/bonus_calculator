@@ -9,7 +9,7 @@ A browser-based tool for **semi-annual profitability and bonus payout analysis**
 - **CSV or Excel** (`.csv`, `.xlsx`, `.xlsx`) via drag-and-drop or file picker
 - **Data issues panel** for rows excluded or flagged during validation
 - **Results**: project summary (revenue, cost, margin, consultants) and per-employee detail, with sorting and filters
-- **Download results** as Excel from the results tabs
+- **Download results** as Excel with formulas from the results tabs
 
 ## Quick start
 
