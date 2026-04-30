@@ -59,8 +59,13 @@ Inputs are read in-memory in your browser. Nothing is uploaded to a backend by t
 |------|-------------|
 | `consultant_bonus_calculator.html` | Main application |
 | `serve.json` | Local server rewrites (root URL → calculator) |
+| `vercel.json` | Same rewrites for [Vercel](https://vercel.com/) (Vercel does not read `serve.json`) |
 | `package.json` | Dev dependency and `npm run dev` script |
 | `sample_*.csv` | Example data |
+
+### Deploying to Vercel
+
+Connect the repo and deploy as a static site. Vercel’s default root is `index.html`; this project uses **`vercel.json`** so `/` and `/index.html` serve `consultant_bonus_calculator.html` without maintaining a duplicate file.
 
 ---
 
